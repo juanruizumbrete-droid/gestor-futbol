@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Team, TrainingSession, Category, Level } from "./types";
 
-// Usamos la variable configurada en Netlify
+// Inicialización con la variable de Netlify
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
 export const generateTrainingSession = async (params: {
@@ -13,6 +13,7 @@ export const generateTrainingSession = async (params: {
   duration: string;
   material: string;
 }): Promise<any> => {
+  // Cambio clave: Forzamos el modelo gemini-1.5-flash
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   
   const prompt = `Como experto metodólogo UEFA C (RFAF/CEDIFA), genera una sesión de entrenamiento completa en formato JSON.
@@ -40,7 +41,7 @@ export const generateSeasonObjectives = async (params: {
   
   const prompt = `Como experto coordinador RFAF/CEDIFA, propón objetivos para:
   Categoría: ${params.category}, Nivel: ${params.level}, Fase: ${params.phase}, Tipo: ${params.type}.
-  Devuelve solo 3-5 puntos clave.`;
+  Devuelve solo 3-5 puntos clave sin introducciones.`;
 
   const result = await model.generateContent(prompt);
   const response = await result.response;
@@ -55,15 +56,17 @@ export const chatWithAssistant = async (
   }
 ) => {
   const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash",
-    systemInstruction: "Eres un Asistente para entrenadores UEFA C experto en RFAF y CEDIFA. Tu tono es profesional. Al final añade: 'Esta IA es una herramienta de apoyo. La decisión final es del entrenador.'"
+    model: "gemini-1.5-flash"
   });
 
   const chat = model.startChat({
     history: context.history.map(h => ({
       role: h.role === 'user' ? 'user' : 'model',
       parts: [{ text: h.text }]
-    }))
+    })),
+    generationConfig: {
+      maxOutputTokens: 1000,
+    },
   });
 
   const result = await chat.sendMessage(message);
