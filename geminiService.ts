@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Team, TrainingSession, Category, Level } from "./types";
 
-// Inicialización con la variable de Netlify
+// Inicializamos la conexión estándar
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
 export const generateTrainingSession = async (params: {
@@ -13,22 +13,15 @@ export const generateTrainingSession = async (params: {
   duration: string;
   material: string;
 }): Promise<any> => {
-  // Cambio clave: Forzamos el modelo gemini-1.5-flash
+  // Usamos el modelo estable 1.5-flash
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   
   const prompt = `Como experto metodólogo UEFA C (RFAF/CEDIFA), genera una sesión de entrenamiento completa en formato JSON.
-  Categoría: ${params.category} (${params.age})
-  Nivel: ${params.level}
-  Nº Jugadores: ${params.playerCount}
-  Objetivo Principal: ${params.objective}
-  Duración: ${params.duration}
-  Material: ${params.material}
-
-  La sesión debe incluir campos: juego, circuitoTecnico, posesion, partidoCondicionado y oleada.`;
+  Categoría: ${params.category} (${params.age}), Nivel: ${params.level}, Objetivo: ${params.objective}.
+  Responde solo con el objeto JSON que contenga: juego, circuitoTecnico, posesion, partidoCondicionado y oleada.`;
 
   const result = await model.generateContent(prompt);
-  const response = await result.response;
-  return JSON.parse(response.text());
+  return JSON.parse(result.response.text());
 };
 
 export const generateSeasonObjectives = async (params: {
@@ -39,13 +32,11 @@ export const generateSeasonObjectives = async (params: {
 }): Promise<string> => {
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   
-  const prompt = `Como experto coordinador RFAF/CEDIFA, propón objetivos para:
-  Categoría: ${params.category}, Nivel: ${params.level}, Fase: ${params.phase}, Tipo: ${params.type}.
-  Devuelve solo 3-5 puntos clave sin introducciones.`;
+  const prompt = `Como experto coordinador RFAF/CEDIFA, propón 3 objetivos clave para:
+  Categoría: ${params.category}, Nivel: ${params.level}, Fase: ${params.phase}, Tipo: ${params.type}.`;
 
   const result = await model.generateContent(prompt);
-  const response = await result.response;
-  return response.text().trim();
+  return result.response.text().trim();
 };
 
 export const chatWithAssistant = async (
@@ -55,21 +46,16 @@ export const chatWithAssistant = async (
     history: { role: 'user' | 'model'; text: string }[];
   }
 ) => {
-  const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash"
-  });
+  // Configuración de chat directa y robusta
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   const chat = model.startChat({
     history: context.history.map(h => ({
       role: h.role === 'user' ? 'user' : 'model',
-      parts: [{ text: h.text }]
+      parts: [{ text: h.text }],
     })),
-    generationConfig: {
-      maxOutputTokens: 1000,
-    },
   });
 
   const result = await chat.sendMessage(message);
-  const response = await result.response;
-  return response.text();
+  return result.response.text();
 };
